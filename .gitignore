@@ -1,0 +1,4 @@
+node_modules/
+src/canvas-engine.js
+src/worker-bundle.js
+.DS_Store

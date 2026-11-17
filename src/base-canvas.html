@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SLH-DSA · 전체 구조 Canvas</title>
+<style>
+ :root{color-scheme:light;--bg:#f8fafc;--paper:#fff;--ink:#17243a;--muted:#58667b;--line:#ccd4df;--blue:#245cd4;--orange:#b65f08;--soft:#eaf1ff;--focus:#3169df;font-family:Inter,system-ui,"Malgun Gothic",sans-serif;font-size:14px}
+ *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink)}button,select,input{font:inherit;color:inherit}button,select,input[type=number]{background:var(--paper);border:1px solid var(--line);border-radius:7px;min-height:36px;padding:6px 10px}button{cursor:pointer;white-space:nowrap}button:hover{background:var(--soft);border-color:#a4b9e8}button:focus-visible,select:focus-visible,input:focus-visible,canvas:focus-visible{outline:2px solid var(--focus);outline-offset:2px}.primary{background:var(--ink);color:white;border-color:var(--ink)}.primary:hover{background:#304361}select{max-width:100%;min-width:0}input[type=number]{width:76px}.app{height:100dvh;min-height:420px;display:flex;flex-direction:column}.top{padding:14px 20px 10px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:var(--paper)}h1{font-size:20px;letter-spacing:-.5px;margin:0;font-weight:650}h1 span{font-size:13px;font-weight:400;color:var(--muted);margin-left:8px}.stats{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}.stats b{font-weight:600;color:var(--ink)}.toolbar{padding:0 20px 12px;background:var(--paper);display:flex;gap:9px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)}label{display:inline-flex;gap:7px;align-items:center;font-size:12px;color:var(--muted)}label select,label input{font-size:13px;color:var(--ink)}.spacer{flex:1}.zoom{display:inline-flex;gap:5px;align-items:center}.zoom output{min-width:46px;text-align:center;font-size:12px;font-variant-numeric:tabular-nums}.stage{flex:1;min-height:160px;position:relative;overflow:hidden;background:var(--paper)}#board{display:block;width:100%;height:100%;touch-action:none;cursor:grab}#board.dragging{cursor:grabbing}.legend{position:absolute;left:16px;top:12px;display:flex;gap:14px;flex-wrap:wrap;pointer-events:none;font-size:11px;color:var(--muted);background:rgba(255,255,255,.93);padding:7px 10px;border-radius:5px}.legend span{display:flex;align-items:center;gap:6px}.swatch{display:inline-block;width:19px;border-top:2px solid var(--blue)}.swatch.auth{border-color:var(--orange)}.swatch.ref{border-color:#72839b;border-top-style:dotted}.swatch.sign{border-top-style:dashed}.bottom{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:7px 20px;font-size:11px;color:var(--muted);border-top:1px solid var(--line);background:var(--paper)}.bottom a{color:var(--muted)}.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.hint{position:absolute;right:16px;bottom:14px;pointer-events:none;background:rgba(255,255,255,.92);color:var(--muted);font-size:11px;padding:8px 11px;border-radius:5px}.stage:fullscreen{background:white}.stage:fullscreen #board{width:100vw;height:100vh}@media(max-width:760px){.top{padding:10px 12px;gap:7px}.toolbar{padding:0 12px 9px;gap:6px}.stats{gap:10px;font-size:11px}.spacer{display:none}h1{font-size:18px}h1 span{display:none}.toolbar label{gap:4px}button,select,input[type=number]{min-height:36px;padding:5px 8px}.legend{top:7px;left:7px;gap:8px;max-width:calc(100% - 14px)}.hint{display:none}.bottom{padding:6px 12px}.optional{display:none}.param{max-width:235px}.app{min-height:540px}}@media print{.toolbar,.legend,.hint,.bottom{display:none}.app{height:95vh}.top{padding:0 0 12px}.stage{overflow:visible}}
+</style>
+</head>
+<body>
+<main class="app">
+ <header class="top"><h1>SLH-DSA <span>전체 구조 Canvas</span></h1><div class="stats" id="stats" aria-live="polite"></div></header>
+ <nav class="toolbar" aria-label="도화지 도구">
+  <label>파라미터 <select id="parameter" class="param" aria-label="SLH-DSA 파라미터"></select></label>
+  <label>계층 <select id="layer" aria-label="확대 XMSS 계층"></select></label>
+  <label>잎 <input id="leaf" type="number" min="0" max="511" value="2" step="1" aria-label="XMSS 잎 인덱스"></label>
+  <label>FORS <select id="fors-tree" aria-label="확대할 FORS 트리"></select></label>
+  <label>체인 <input id="wots-chain" type="number" min="0" max="34" value="3" step="1" aria-label="선택할 WOTS+ 체인 번호"></label>
+  <label class="optional">입력 <select id="format"><option value="pure">Pure</option><option value="prehash">Pre-hash</option></select></label>
+  <span class="spacer"></span>
+  <label>보기 <select id="focus" aria-label="도화지에서 확대할 영역"><option value="all">전체</option><option value="message">메시지·해시</option><option value="fors">FORS</option><option value="wots">WOTS+</option><option value="xmss">XMSS</option><option value="ht">HYPERTREE</option><option value="signature">서명·검증</option></select></label>
+  <button id="fit" class="primary" type="button">전체 맞춤</button>
+  <div class="zoom"><button id="minus" type="button" aria-label="축소">−</button><output id="zoom">100%</output><button id="plus" type="button" aria-label="확대">+</button></div>
+  <button id="fullscreen" type="button" class="optional">전체 화면</button><button id="export" type="button">PNG 저장</button>
+ </nav>
+ <section class="stage" id="stage" aria-label="전체 SLH-DSA 도화지">
+  <canvas id="board" tabindex="0" role="img" aria-describedby="description">메시지 형식화와 랜덤화, H_msg, FORS 숲, WOTS+ 체인, XMSS 트리, HYPERTREE의 모든 계층, 공개키와 최종 서명 및 검증이 한 도화지에 연결되어 있습니다.</canvas>
+  <div class="legend"><span><i class="swatch"></i>공개키 복원</span><span><i class="swatch auth"></i>AUTH / 서명 값</span><span><i class="swatch sign"></i>WOTS+ 서명</span><span><i class="swatch ref"></i>같은 구조의 확대도</span></div>
+  <div class="hint">휠 / 두 손가락: 확대·축소　드래그: 이동　더블클릭: 해당 부분 확대</div>
+ </section>
+ <footer class="bottom"><span id="status" aria-live="polite">전체 구조</span><span>방향키: 이동 · + / −: 확대·축소 · 0: 전체 맞춤　<a href="https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.205.pdf" target="_blank" rel="noopener">NIST FIPS 205</a></span></footer>
+</main>
+<p id="description" class="sr">전체 맞춤으로 모든 구조를 한눈에 볼 수 있습니다. 보기 메뉴로 각 구조를 확대하거나 마우스 휠과 드래그를 사용하세요. WOTS+에서는 각 체인의 주황색 블록 하나가 서명에 포함되며, 왼쪽 SIG_WOTS 배열에 모입니다. 체인 행을 클릭하거나 체인 번호 입력으로 선택 위치와 남은 해시 횟수를 확인하세요. 서명 위치는 명시된 예시 M과 그 체크섬으로 계산합니다. 최종 서명은 R, SIG_FORS, SIG_HT로 구성됩니다. 검증은 동일한 메시지 해시에서 FORS 공개키와 HYPERTREE 루트를 복원하고 공개키 PK.root와 비교합니다. 각 FORS 트리의 내부와 HYPERTREE의 동위 트리는 축약하고 실제 개수를 표시합니다.</p>
+<script>
+(()=>{
+ 'use strict';
+ const $=id=>document.getElementById(id),board=$('board'),stage=$('stage'),ctx=board.getContext('2d');
+ const sets={'128s':{n:16,h:63,d:7,hp:9,a:12,k:14,m:30},'128f':{n:16,h:66,d:22,hp:3,a:6,k:33,m:34},'192s':{n:24,h:63,d:7,hp:9,a:14,k:17,m:39},'192f':{n:24,h:66,d:22,hp:3,a:8,k:33,m:42},'256s':{n:32,h:64,d:8,hp:8,a:14,k:22,m:47},'256f':{n:32,h:68,d:17,hp:4,a:9,k:35,m:49}};
+ const C={paper:'#ffffff',ink:'#17243a',muted:'#54647a',line:'#8b97a8',faint:'#d9dfe8',blue:'#245cd4',blueFill:'#eaf1ff',orange:'#b65f08',orangeFill:'#fff0da',ref:'#73849c',grid:'#d7dee8'};
+ const world={w:6800,h:4200};
+ const regions={all:{x:0,y:0,w:6800,h:4200},wots:{x:45,y:180,w:1540,h:2530},xmss:{x:1660,y:180,w:1830,h:2310},ht:{x:3650,y:45,w:1510,h:2460},fors:{x:2340,y:2570,w:2980,h:1560},message:{x:120,y:2670,w:2170,h:1140},signature:{x:5340,y:130,w:1320,h:3080}};
+ let state={parameter:'SLH-DSA-SHA2-128s',layer:0,digits:[],format:'pure',forsTree:0,wotsChain:3},cam={x:0,y:0,s:1},cssW=1,cssH=1,dpr=1,p,geo,objects=[],hitboxes=[],frame=0,viewMode='all',exporting=false;
+ const MAX_ZOOM=12,MIN_ZOOM=.025;
+ function normalize(){p=sets[state.parameter.split('-').pop()];state.layer=Math.max(0,Math.min(p.d-1,state.layer));state.forsTree=Math.max(0,Math.min(p.k-1,state.forsTree));state.wotsChain=Math.max(0,Math.min(2*p.n+2,state.wotsChain));state.digits=Array.from({length:p.d},(_,i)=>Math.max(0,Math.min(2**p.hp-1,Number.isInteger(state.digits[i])?state.digits[i]:i===0?2:0)));}
+ function wotsModel(){
+   // The actual FORS/XMSS public-key hash is not computed in this diagram.
+   // A labelled n-byte example M determines every displayed signature position.
+   const bytes=Array.from({length:p.n},(_,i)=>(73*i+state.layer*11)&255);
+   const messageDigits=bytes.flatMap(b=>[b>>4,b&15]);
+   const checksum=messageDigits.reduce((sum,b)=>sum+15-b,0);
+   const checksumDigits=[(checksum>>8)&15,(checksum>>4)&15,checksum&15];
+   const digits=[...messageDigits,...checksumDigits];
+   return {illustrative:true,messageHex:bytes.map(b=>b.toString(16).padStart(2,'0')).join(''),messageSource:state.layer===0?'FORS pk':'하위 L'+(state.layer-1)+' XMSS root',messageDigits,checksum,checksumDigits,digits,selectedChain:state.wotsChain,signatureBytes:digits.length*p.n,
+     signatureElements:digits.map((step,chain)=>({chain,step,symbol:'X['+chain+','+step+']',bytes:p.n,offset:chain*p.n,generationSteps:step,verificationSteps:15-step,kind:chain<2*p.n?'message':'checksum'}))};
+ }
+ function forsModel(){
+   // A fixed example md makes the bit split inspectable; no cryptographic hash values are simulated.
+   const bytes=Array.from({length:Math.ceil(p.k*p.a/8)},(_,i)=>(0x31+73*i)&255),trees=[];
+   for(let i=0;i<p.k;i++){
+     let index=0;for(let b=0;b<p.a;b++){const offset=i*p.a+b;index=(index<<1)|((bytes[offset>>3]>>(7-(offset&7)))&1);}
+     trees.push({tree:i,index,globalSecretIndex:i*2**p.a+index,auth:Array.from({length:p.a},(_,r)=>({height:r,localSibling:(index>>r)^1,globalSibling:i*2**(p.a-r)+((index>>r)^1)}))});
+   }
+   return {mdHex:bytes.map(b=>b.toString(16).padStart(2,'0')).join(''),usedBits:p.k*p.a,trees,selectedTree:state.forsTree,signatureBytes:p.k*(p.a+1)*p.n};
+ }
+ function addr(l){let a=0n;for(let j=p.d-1;j>l;j--)a=(a<<BigInt(p.hp))+BigInt(state.digits[j]);return a;}
+ function requestDraw(){if(!frame)frame=requestAnimationFrame(()=>{frame=0;render();});}
+ function screenStroke(n=1){return n/Math.max(cam.s,.01);}
+ function path(points,color=C.line,width=3,dash=[],arrow=false){
+   ctx.save();ctx.strokeStyle=color;ctx.lineWidth=Math.max(width,screenStroke(color===C.faint?.42:color===C.line?.65:1.1));ctx.setLineDash(dash.map(x=>Math.max(x,screenStroke(x/6))));ctx.beginPath();points.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.stroke();
+   if(arrow&&points.length>1){const b=points.at(-1),a=points.at(-2),angle=Math.atan2(b[1]-a[1],b[0]-a[0]),size=Math.max(15,screenStroke(5));ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(b[0]-Math.cos(angle-.48)*size,b[1]-Math.sin(angle-.48)*size);ctx.lineTo(b[0],b[1]);ctx.lineTo(b[0]-Math.cos(angle+.48)*size,b[1]-Math.sin(angle+.48)*size);ctx.stroke();}ctx.restore();
+ }
+ const line=(x1,y1,x2,y2,c=C.line,w=3,d=[],a=false)=>path([[x1,y1],[x2,y2]],c,w,d,a);
+ function box(x,y,w,h,kind='neutral',radius=8){ctx.save();ctx.fillStyle=kind==='active'?C.blueFill:kind==='auth'?C.orangeFill:C.paper;ctx.strokeStyle=kind==='active'?C.blue:kind==='auth'?C.orange:C.line;ctx.lineWidth=Math.max(kind==='neutral'?2:3,screenStroke(kind==='neutral'?.7:1.1));ctx.beginPath();ctx.roundRect(x,y,w,h,radius);ctx.fill();ctx.stroke();ctx.restore();}
+ function dot(x,y,r=10,kind='neutral'){ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=kind==='active'?C.blueFill:kind==='auth'?C.orangeFill:C.paper;ctx.strokeStyle=kind==='active'?C.blue:kind==='auth'?C.orange:C.line;ctx.lineWidth=Math.max(2,screenStroke(kind==='neutral'?.6:1.1));ctx.fill();ctx.stroke();ctx.restore();}
+ function text(value,x,y,size=38,options={}){
+   if(!exporting&&size*cam.s<10.5&&!options.major)return;
+   ctx.save();ctx.font=(options.weight||400)+' '+size+'px system-ui,"Malgun Gothic",sans-serif';ctx.textAlign=options.align||'left';ctx.textBaseline='alphabetic';ctx.fillStyle=options.color||C.ink;ctx.fillText(String(value),x,y);ctx.restore();
+ }
+ function label(value,x,y,size=60,options={}){text(value,x,y,size,{...options,major:true});}
+ function heading(value,sub,x,y){label(value,x,y,78,{weight:500});if(sub)label(sub,x,y+85,54,{color:C.muted});}
+ function block(x,y,w,h,title,sub='',kind='neutral',large=false){box(x,y,w,h,kind,12);label(title,x+w/2,y+h*(sub?.45:.62),large?63:54,{align:'center'});if(sub)text(sub,x+w/2,y+h*.77,34,{align:'center',color:C.muted});}
+ function reference(points,caption,x,y){path(points,C.ref,3,[10,15]);text(caption,x,y,38,{color:C.muted});}
+ function simpleTriangle(cx,y,w,h,kind='neutral',detail=true){
+   ctx.save();ctx.fillStyle=kind==='active'?C.blueFill:C.paper;ctx.strokeStyle=kind==='active'?C.blue:C.line;ctx.lineWidth=Math.max(3,screenStroke(kind==='active'?1.2:.7));ctx.beginPath();ctx.moveTo(cx,y);ctx.lineTo(cx-w/2,y+h);ctx.lineTo(cx+w/2,y+h);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+   if(detail){line(cx,y+8,cx-w*.22,y+h*.50,C.line,2);line(cx,y+8,cx+w*.22,y+h*.50,C.line,2);for(const sign of [-1,1]){line(cx+sign*w*.22,y+h*.5,cx+sign*w*.35,y+h*.91,C.faint,2);line(cx+sign*w*.22,y+h*.5,cx+sign*w*.10,y+h*.91,C.faint,2);}}
+   dot(cx,y,Math.max(4,w*.025),kind);
+ }
+ function makeGeometry(){
+   normalize();const hp=p.hp,leafY=2290,treeW=1700,rootY=leafY-hp*155;
+   const pitch=Math.min(230,1800/(p.d-1)),th=Math.min(110,pitch*.57),tw=th*2.5,htX=4380,htTop=300;
+   geo={leafY,treeW,rootY,pitch,th,tw,htX,htTop,htBottom:htTop+(p.d-1)*pitch,leafX:1740+treeW*(state.digits[state.layer]+.5)/(2**hp)};
+   geo.fors=forsModel();
+   geo.wots=wotsModel();
+   regions.xmss={x:1660,y:rootY-360,w:1830,h:leafY-rootY+720};
+   objects=[];hitboxes=[];
+ }
+ function wots(){
+   const len=2*p.n+3,startX=350,step=65,rowH=1600/(len-1),y0=550,endX=startX+step*15,lastY=y0+(len-1)*rowH,pkX=870,pkY=2380,model=geo.wots,sigX=150;
+   heading('WOTS+',''+len+' CHAINS · w = 16 · 15 × F',180,245);
+   text('L'+state.layer+' 입력: '+model.messageSource+' · 서명 위치는 예시 M으로 표시',180,375,33,{color:C.muted});
+   text('예시 M = '+model.messageHex+' · checksum = 0x'+model.checksum.toString(16).padStart(3,'0'),180,425,26,{color:C.muted});
+   geo.wotsRows=[];
+   for(let i=0;i<len;i++){
+     const y=y0+i*rowH,b=model.digits[i],focused=i===state.wotsChain;
+     if(focused){ctx.save();ctx.fillStyle=C.orangeFill;ctx.fillRect(60,y-rowH*.42,1335,rowH*.84);ctx.restore();}
+     if(i===2*p.n)line(60,y-rowH/2,1470,y-rowH/2,C.orange,2,[8,8]);
+     if(i%4===0||i>=2*p.n||focused)text(i<2*p.n?i:'C'+(i-2*p.n),310,y+7,30,{align:'right',color:i<2*p.n?C.muted:C.orange});
+     line(startX,y,endX,y,C.line,1.7);
+     if(b<15)line(startX+b*step,y,endX,y,C.blue,2.3);
+     for(let j=0;j<16;j++){
+       const x=startX+j*step;
+       box(x-19,y-9,38,18,j===b?'auth':j===15?'active':'neutral',1);
+       text(j,x,y+5,13,{align:'center'});
+       if(j===15)line(x-17,y+12,x+17,y+12,C.blue,2.3);
+     }
+     box(sigX-75,y-9,150,18,'auth',1);
+     text('X['+i+','+b+']',sigX,y+5,13,{align:'center',color:C.orange});
+     if(focused){
+       const selectedX=startX+b*step,offset=rowH*.5;
+       path([[selectedX,y+11],[selectedX,y+offset],[245,y+offset],[245,y],[sigX+81,y]],C.orange,2.7);
+     }
+     line(endX+22,y,1470,y,C.line,2);
+     geo.wotsRows.push({chain:i,selectedSteps:[b],element:model.signatureElements[i].symbol,signatureOffset:i*p.n});
+     hitboxes.push({x:60,y:y-rowH*.46,w:1325,h:rowH*.92,type:'wotsChain',chain:i});
+   }
+   label('SIG',sigX,495,49,{align:'center',color:C.orange});
+   text('i',300,495,32,{align:'center',color:C.muted});
+   for(const j of [0,5,10,15])label('X'+j,startX+j*step,495,49,{align:'center'});
+   label('SIG_WOTS',70,2260,42,{color:C.orange});
+   text(len+' × '+p.n+' B = '+model.signatureBytes.toLocaleString()+' B',70,2325,34,{color:C.orange});
+   path([[1470,y0],[1470,lastY+60],[pkX,lastY+60],[pkX,pkY-70]],C.blue,4,[],true);
+   text('T_len · '+len+'개 끝값 압축',pkX,lastY+110,39,{align:'center'});
+   block(pkX-245,pkY-60,490,120,'WOTS+ pk',p.n+' bytes','active',true);
+   path([[pkX+252,pkY],[1570,pkY],[1570,2460],[geo.leafX,2460],[geo.leafX,geo.leafY+15]],C.blue,5,[],true);
+   label('공개키 한 개 = XMSS 잎 한 개',1780,2515,49);
+   const chosen=model.signatureElements[state.wotsChain];
+   label('체인 '+chosen.chain+': '+chosen.symbol+' → SIG_WOTS['+chosen.chain+']',180,2550,45,{color:C.orange});
+   text((chosen.kind==='message'?'메시지':'체크섬')+' 숫자 b='+chosen.step+' · 생성 F '+chosen.generationSteps+'회 · 검증 F '+chosen.verificationSteps+'회 · 블록 '+p.n+' B',180,2620,34,{color:C.muted});
+ }
+ function xmss(){
+   const {leafY,rootY,treeW}=geo,left=1740,idx=state.digits[state.layer],coord=(depth,i)=>({x:left+treeW*(i+.5)/(2**depth),y:rootY+155*depth});
+   heading('XMSS · 확대도','L'+state.layer+' · h′ = '+p.hp+' · '+2**p.hp+' LEAVES',1760,rootY-300);
+   const visibleDepth=exporting?Math.min(p.hp,7):Math.min(p.hp,Math.max(3,Math.floor(Math.log2(treeW*cam.s/6))));
+   for(let depth=0;depth<p.hp;depth++)for(let i=0;i<2**depth;i++)for(let b=0;b<2;b++){
+     if(depth>=visibleDepth&&i!==(idx>>(p.hp-depth)))continue;
+     const a=coord(depth,i),z=coord(depth+1,2*i+b),on=2*i+b===(idx>>(p.hp-depth-1));line(a.x,a.y,z.x,z.y,on?C.blue:C.line,on?6:1.7);
+   }
+   for(let depth=0;depth<=p.hp;depth++)for(let i=0;i<2**depth;i++){
+     const a=coord(depth,i),sel=idx>>(p.hp-depth),auth=depth>0&&i===(sel^1),kind=i===sel?'active':auth?'auth':'neutral',space=treeW/(2**depth),r=Math.min(15,space*.23);
+     if(depth>visibleDepth&&i!==sel&&!auth)continue;
+     if(depth===p.hp)box(a.x-r,a.y-r,r*2,r*2,kind,Math.min(2,r*.4));else dot(a.x,a.y,r,kind);
+     if(auth)text('AUTH['+(p.hp-depth)+']',a.x,a.y+(depth===p.hp?50:-30),27,{align:'center',color:C.orange});
+     if(depth===visibleDepth&&depth<p.hp&&i!==sel)simpleTriangle(a.x,a.y+24,space*.60,55,'neutral',false);
+   }
+   if(visibleDepth<p.hp)label('미세 서브트리 · 확대하면 전체 노드 표시',2700,2190,45,{align:'center',color:C.muted});
+   label('XMSS root',left+treeW/2,rootY-60,56,{align:'center'});
+   text('WOTS+ pk['+idx+']',geo.leafX,leafY-37,28,{align:'center',color:C.blue});
+   label('AUTH '+p.hp+'개 · WOTS+ 서명 '+(2*p.n+3)+'개 값',1820,2610,49);
+   const selectedY=geo.htTop+(p.d-1-state.layer)*geo.pitch;
+   reference([[left+treeW/2+25,rootY],[3550,rootY],[3550,selectedY],[geo.htX-geo.tw/2-25,selectedY]],'오른쪽 선택 XMSS의 확대도',3560,rootY-45);
+ }
+ function hypertree(){
+   const {htX:x,htTop:top,pitch,tw,th}=geo;
+   heading('HYPERTREE','d = '+p.d+' · h = '+p.h+' · h′ = '+p.hp,3740,85);
+   for(let l=p.d-1;l>=0;l--){
+     const y=top+(p.d-1-l)*pitch,selected=l===state.layer,kind=selected?'active':'neutral',fraction=(state.digits[l]+.5)/(2**p.hp);
+     simpleTriangle(x,y,tw,th,kind);const leafX=x-tw/2+tw*fraction;box(leafX-4,y+th-4,8,8,'active',1);
+     label('L'+l,x+tw/2+45,y+th*.68,59,{color:selected?C.blue:C.ink});
+     const exp=(p.d-1-l)*p.hp;text(exp===0?'트리 1개':'트리 2^'+exp+'개',x+tw/2+190,y+th*.68,37,{color:C.muted});
+     if(l<p.d-1){
+       const upper=y-pitch,uf=(state.digits[l+1]+.5)/(2**p.hp),target=x-tw/2+tw*uf;line(x,y-10,target,upper+th+8,C.blue,4,[12,10],true);
+       for(const sign of [-1,1]){
+         const peerX=x+sign*365;simpleTriangle(peerX,y+th*.15,tw*.57,th*.66,'neutral',false);
+         line(peerX,y+th*.15-6,x+sign*tw*.38,upper+th+5,C.line,2,[10,12],true);
+       }
+     }
+     hitboxes.push({x:x-tw/2-30,y:y-20,w:tw+80,h:th+40,type:'layer',layer:l});
+   }
+   const b=geo.htBottom+th;
+   label('모든 '+p.d+'개 계층 표시',3820,2400,57);
+   text('삼각형 = XMSS · 동위 트리는 대표 3개로 축약',3820,2470,35,{color:C.muted});
+   text('높이 h′의 XMSS 루트를 바로 위 계층의 WOTS+로 서명',3820,2540,35,{color:C.muted});
+   label('PK.root',x,top-75,64,{align:'center'});
+   const bottomLeaf=x-tw/2+tw*(state.digits[0]+.5)/(2**p.hp);
+   path([[4380,2700],[4380,2590],[bottomLeaf,2590],[bottomLeaf,b+15]],C.blue,5,[15,10],true);
+   text('FORS pk를 L0의 WOTS+로 서명',4550,2625,38);
+ }
+ function fors(){
+   label('FORS',3450,2810,78,{weight:500});
+   text('root[i] 하나 = FORS 트리 하나',3450,2880,32,{color:C.muted});
+   const left=3520,right=5220,yRoot=3100,th=p.a*30,step=(right-left)/p.k,selected=state.forsTree,mdY=3910,model=geo.fors;
+   geo.forsOverview=[];
+   for(let i=0;i<p.k;i++){
+     const x=left+step*(i+.5),tw=Math.min(step*.80,103),index=model.trees[i].index;
+     // One connected tree: one root and the entire a-edge path to its selected leaf.
+     // Only subtrees outside this path are collapsed; no middle path levels are omitted.
+     path([[x-step*.46,yRoot-63],[x+step*.46,yRoot-63],[x+step*.46,yRoot+th+23],[x-step*.46,yRoot+th+23],[x-step*.46,yRoot-63]],i===selected?C.ref:C.faint,1.2);
+     const radius=Math.max(1.8,Math.min(4.7,tw*.052));
+     let parent={id:'0:0',depth:0,index:0,x,y:yRoot};
+     const layout={tree:i,root:parent.id,nodes:[{...parent,role:'path'}],edges:[]};
+     dot(parent.x,parent.y,radius*1.2,'active');
+     for(let d=1;d<=p.a;d++){
+       const chosen=index>>(p.a-d),dir=(chosen&1)?1:-1,y=yRoot+d*30;
+       const child={id:d+':'+chosen,depth:d,index:chosen,x:Math.max(x-tw*.20,Math.min(x+tw*.20,parent.x+dir*tw*.16)),y};
+       const sibling={id:d+':'+(chosen^1),depth:d,index:chosen^1,x:parent.x-dir*tw*.19,y};
+       line(parent.x,parent.y,child.x,child.y,C.blue,2.6);
+       line(parent.x,parent.y,sibling.x,sibling.y,C.line,1.5);
+       dot(child.x,child.y,radius,'active');dot(sibling.x,sibling.y,radius,'auth');
+       if(d<p.a)line(sibling.x,sibling.y+radius+2,sibling.x,sibling.y+13,C.line,1.2,[3,4]);
+       layout.nodes.push({...child,role:'path'},{...sibling,role:'auth'});
+       layout.edges.push({from:parent.id,to:child.id},{from:parent.id,to:sibling.id});
+       parent=child;
+     }
+     geo.forsOverview.push(layout);
+     const leaf=parent,secretY=leaf.y+112;
+     box(x-step*.24,secretY-19,step*.48,38,'auth',2);
+     line(x,secretY-25,leaf.x,leaf.y+8,C.blue,2,[],true);
+     text('F',(x+leaf.x)/2+step*.17,leaf.y+64,Math.min(32,step*.36),{color:C.blue});
+     text('root['+i+']',x,yRoot-25,Math.min(22,step*.19),{align:'center'});
+     text('SK_'+i,x,secretY+53,Math.min(26,step*.34),{align:'center',color:C.orange});
+     line(x,yRoot-5,x,3030,C.line,2);
+     box(x-step*.43,mdY-32,step*.86,64,i===selected?'active':'neutral',3);
+     text(index.toString(2).padStart(p.a,'0'),x,mdY+5,Math.min(23,step/(p.a*.64)),{align:'center'});
+     text('md_'+i,x,mdY+76,Math.min(25,step*.28),{align:'center'});
+     path([[x,mdY-38],[x,secretY+68],[x,secretY+25]],i===selected?C.orange:C.faint,i===selected?3:1.5,[8,10],true);
+     hitboxes.push({x:x-step*.48,y:yRoot-20,w:step*.96,h:secretY-yRoot+110,type:'forsTree',tree:i});
+   }
+   line(left+step/2,3030,right-step/2,3030,C.line,3);path([[4380,3030],[4380,2980]],C.blue,5,[],true);
+   block(4140,2890,480,90,'T_k',p.k+'개 루트 압축','active');
+   block(4135,2650,490,120,'FORS pk',p.n+' bytes','active',true);
+   line(4380,2880,4380,2785,C.blue,5,[],true);
+   const bx=2820,by=2890,dy=54,index=model.trees[selected].index;
+   heading('FORS · 인증 경로 확대','TREE '+selected+' · j='+index+' · AUTH '+p.a+'개',2370,2675);
+   for(let r=p.a-1;r>=0;r--){
+     const dep=p.a-r,yy=by+dep*dy,authX=(index>>r)&1?bx-330:bx+330;
+     line(bx,yy-dy,bx,yy,C.blue,4);line(bx,yy-dy,authX,yy,C.line,2);dot(authX,yy,10,'auth');
+     text('AUTH['+r+']',authX+(authX<bx?-22:22),yy+8,24,{align:authX<bx?'right':'left',color:C.orange});text('H',bx+22,yy-dy/2+8,22,{color:C.blue});
+     if(r>0)for(const sign of [-1,1]){
+       line(authX,yy+10,authX+sign*18,yy+31,C.line,1.3);
+       dot(authX+sign*18,yy+31,3,'neutral');
+       if(r>1)line(authX+sign*18,yy+35,authX+sign*18,yy+43,C.line,1.2,[3,4]);
+     }
+   }
+   for(let dep=0;dep<=p.a;dep++)dot(bx,by+dep*dy,10,'active');
+   const selectedLeafY=by+p.a*dy;
+   text('root['+selected+']',bx,by-35,31,{align:'center'});
+   text('잎 = F(SK_'+selected+'['+index+'])',bx+45,selectedLeafY+8,30);
+   box(bx-28,selectedLeafY+30,56,54);text('F',bx,selectedLeafY+68,33,{align:'center'});
+   box(bx-145,selectedLeafY+105,290,70,'auth');label('SK_'+selected+'['+index+']',bx,selectedLeafY+153,36,{align:'center'});
+   line(bx,selectedLeafY+99,bx,selectedLeafY+90,C.blue,3,[],true);line(bx,selectedLeafY+25,bx,selectedLeafY+15,C.blue,3,[],true);
+   label('SIG_FORS: 각 트리의 SK 1개 + AUTH '+p.a+'개',2370,4050,40);
+   reference([[bx+30,by],[3310,by],[3310,yRoot-46],[left+step*(selected+.5)-12,yRoot-46]],'숲의 '+selected+'번 트리 확대',3220,by-45);
+   geo.forsLeaf={x:left+step*(selected+.5),y:yRoot+th};
+   geo.forsDigest={x:left-20,y:mdY};
+   label('FORS: k='+p.k+' · a='+p.a,5480,3630,51);
+   text('각 트리: 높이 '+p.a+' · '+(2**p.a).toLocaleString()+'개 잎',5480,3710,38);
+   text('서명은 SK + AUTH이며, 잎 F(SK)는 복원',5480,3790,38);
+   text('root[0] ‖ … ‖ root[k−1] → T_k → FORS pk',5480,3870,38);
+   text('한 칸 = 루트가 하나인 독립 FORS 트리',5480,3950,34,{color:C.muted});
+   text('선택 경로의 '+p.a+'단계는 전부 표시 · 점선은 미선택 서브트리',5480,4020,34,{color:C.muted});
+ }
+ function message(){
+   heading('메시지 → 랜덤화 → 해시','M′ · R · md · idx_tree · idx_leaf',180,2810);
+   const docX=260,docY=3070;
+   path([[docX,docY],[docX+390,docY],[docX+450,docY+60],[docX+450,docY+440],[docX,docY+440],[docX,docY]],C.line,3);
+   for(let i=0;i<4;i++)line(docX+65,docY+90+i*62,docX+320,docY+90+i*62,C.faint,4);
+   label('M + ctx',docX+225,docY+520,65,{align:'center'});
+   text(state.format==='pure'?'Pure: 0x00 ‖ |ctx| ‖ ctx ‖ M':'Pre-hash: 0x01 ‖ |ctx| ‖ ctx ‖ OID ‖ PH(M)',180,3740,37,{color:C.muted});
+   text('SK.prf · opt_rand · M′',1620,2970,39,{align:'center'});
+   block(1330,3010,580,120,'PRF_msg','R 생성');
+   block(1330,3260,580,130,'H_msg','R · PK.seed · PK.root · M′','active',true);
+   line(1620,3140,1620,3245,C.blue,5,[],true);label('R',1665,3217,58);
+   path([[docX+470,docY+215],[1100,docY+215],[1100,3325],[1310,3325]],C.blue,5,[],true);label('M′',960,3255,62);
+   block(1325,3520,590,130,'digest · '+p.m+' B','md / idx_tree / idx_leaf','active');line(1620,3405,1620,3505,C.blue,5,[],true);
+   const input=geo.forsDigest;path([[1930,3585],[2230,3585],[2230,3910],[input.x,input.y]],C.blue,5,[],true);
+   label('md '+p.k*p.a+' bits → '+p.k+'개의 '+p.a+'-bit 조각 → 트리마다 위치 선택',3460,4050,42);
+   path([[1880,3560],[2160,3560],[2160,2560],[3790,2560],[3790,geo.htBottom+geo.th+95],[geo.htX-geo.tw/2-20,geo.htBottom+geo.th+95]],C.ref,3,[],true);
+   text('idx_tree: '+(p.h-p.hp)+' bits · idx_leaf: '+p.hp+' bits',1330,3785,33,{color:C.muted});
+ }
+ function signature(){
+   const len=2*p.n+3,fs=p.k*(p.a+1)*p.n,ht=(p.h+p.d*len)*p.n,total=p.n+fs+ht;
+   heading('공개키 · PK','PK.seed ‖ PK.root · '+2*p.n+' B',5480,245);
+   block(5480,395,1060,150,'PK.seed     |     PK.root','키 생성 때 정해진 공개키','active',true);
+   path([[geo.htX+35,geo.htTop],[5320,geo.htTop],[5320,470],[5460,470]],C.blue,5,[],true);
+   heading('최종 서명 · SIG',total.toLocaleString()+' BYTES',5480,800);
+   block(5480,960,1060,165,'R',p.n+' B · 랜덤화 값','active',true);
+   block(5480,1170,1060,165,'SIG_FORS',fs.toLocaleString()+' B · '+p.k+' × (SK 1 + AUTH '+p.a+')','neutral',true);
+   block(5480,1380,1060,165,'SIG_HT',ht.toLocaleString()+' B · '+p.d+' × (SIG_WOTS + AUTH)','neutral',true);
+   text('계층마다 WOTS+ 서명 '+len+'개 값 + AUTH '+p.hp+'개',5480,1645,39);
+   text('SIG = R ‖ SIG_FORS ‖ SIG_HT',5480,1740,43);
+   path([[geo.htX+geo.tw/2+70,geo.htBottom+geo.th/2],[5300,geo.htBottom+geo.th/2],[5300,1460],[5460,1460]],C.blue,4,[14,10],true);
+   heading('검증','메시지 + SIG + PK',5480,2080);
+   const ys=[2260,2480,2700,2920],titles=['H_msg → 같은 digest','SIG_FORS → FORS pk 복원','SIG_HT → 최상위 루트 복원','복원 루트 = PK.root ?'];
+   titles.forEach((v,i)=>{block(5480,ys[i],1060,140,v,i===3?'일치: 유효 / 불일치: 거부':'',i===3?'active':'neutral',true);if(i<3)line(6010,ys[i]+155,6010,ys[i+1]-20,C.blue,5,[],true);});
+   path([[6540,470],[6680,470],[6680,2990],[6560,2990]],C.blue,4,[],true);text('공개키와 비교',6660,1950,35,{align:'right',color:C.muted});
+   line(6010,1765,6010,1940,C.line,3,[],true);
+   text('SK.seed → PRF → WOTS+ / FORS 비밀값',5480,3290,38,{color:C.muted});
+   text('SK = SK.seed ‖ SK.prf ‖ PK.seed ‖ PK.root',5480,3370,38,{color:C.muted});
+   text('비밀키 '+4*p.n+' B · 각 요소 '+p.n+' B',5480,3450,38,{color:C.muted});
+ }
+ function drawScene(){
+   makeGeometry();wots();xmss();hypertree();fors();message();signature();
+   text(state.parameter,180,70,53,{weight:500,major:true});
+   text('WOTS+ 체인 전체 / 확대 시 XMSS 전체 노드 / HYPERTREE 모든 계층 / FORS 전체 숲',180,140,33,{color:C.muted});
+   text('FORS 내부와 동위 트리는 축약 · FORS 인덱스는 예시 md의 MSB부터 a bits씩 추출',180,4135,34,{color:C.muted});
+ }
+ function render(){
+   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=C.paper;ctx.fillRect(0,0,cssW,cssH);
+   const gs=24;ctx.fillStyle=C.grid;for(let x=((cam.x%gs)+gs)%gs;x<cssW;x+=gs)for(let y=((cam.y%gs)+gs)%gs;y<cssH;y+=gs){ctx.beginPath();ctx.arc(x,y,.65,0,Math.PI*2);ctx.fill();}
+   ctx.setTransform(dpr*cam.s,0,0,dpr*cam.s,dpr*cam.x,dpr*cam.y);drawScene();
+   $('zoom').textContent=Math.round(cam.s*100)+'%';
+   const chosen=geo.wots.signatureElements[state.wotsChain];
+   $('status').textContent=$('focus').value==='wots'?'예시 M · 체인 '+chosen.chain+' · b='+chosen.step+' → SIG_WOTS['+chosen.chain+']='+chosen.symbol+' ('+p.n+' B) · 검증 F '+chosen.verificationSteps+'회':state.parameter+' · L'+state.layer+' · tree 0x'+addr(state.layer).toString(16)+' · leaf '+state.digits[state.layer]+' · 도화지 '+world.w+' × '+world.h;
+ }
+ function fitRegion(name='all'){
+   const r=regions[name]||regions.all,pad=name==='all'?32:45,scale=Math.min((cssW-pad*2)/r.w,(cssH-pad*2)/r.h);
+   cam.s=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,scale));cam.x=cssW/2-(r.x+r.w/2)*cam.s;cam.y=cssH/2-(r.y+r.h/2)*cam.s;viewMode=name;$('focus').value=name;requestDraw();
+ }
+ function zoomAt(x,y,factor){const before={x:(x-cam.x)/cam.s,y:(y-cam.y)/cam.s};cam.s=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,cam.s*factor));cam.x=x-before.x*cam.s;cam.y=y-before.y*cam.s;viewMode='custom';requestDraw();}
+ function updateUI(){
+   normalize();makeGeometry();const len=2*p.n+3,total=(1+p.k*(p.a+1)+p.h+p.d*len)*p.n;
+   $('stats').innerHTML='<span>WOTS+ <b>'+len+' chains</b></span><span>XMSS <b>h′='+p.hp+'</b></span><span>HYPERTREE <b>'+p.d+' layers</b></span><span>FORS <b>'+p.k+' × 2^'+p.a+'</b></span><span>SIG <b>'+total.toLocaleString()+' B</b></span>';
+   $('layer').innerHTML=Array.from({length:p.d},(_,i)=>'<option value="'+i+'">L'+i+'</option>').reverse().join('');$('layer').value=String(state.layer);$('leaf').max=String(2**p.hp-1);$('leaf').value=String(state.digits[state.layer]);
+   $('fors-tree').innerHTML=Array.from({length:p.k},(_,i)=>'<option value="'+i+'">트리 '+i+'</option>').join('');$('fors-tree').value=String(state.forsTree);
+   $('wots-chain').max=String(2*p.n+2);$('wots-chain').value=String(state.wotsChain);
+   board.setAttribute('aria-label',state.parameter+' 전체 구조. WOTS+ '+len+'개 체인, XMSS 높이 '+p.hp+', HYPERTREE '+p.d+'계층, FORS '+p.k+'개 높이 '+p.a+' 트리.');
+   if(viewMode==='custom')requestDraw();else fitRegion(viewMode);
+ }
+ function resize(){const rect=stage.getBoundingClientRect(),oldW=cssW,oldH=cssH;cssW=Math.max(1,rect.width);cssH=Math.max(1,rect.height);dpr=Math.min(2,window.devicePixelRatio||1);board.width=Math.round(cssW*dpr);board.height=Math.round(cssH*dpr);if(viewMode==='custom'){cam.x+=(cssW-oldW)/2;cam.y+=(cssH-oldH)/2;requestDraw();}else fitRegion(viewMode);}
+ function point(e){const r=board.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+ $('parameter').innerHTML=['SHA2','SHAKE'].flatMap(f=>Object.keys(sets).map(k=>'<option>SLH-DSA-'+f+'-'+k+'</option>')).join('');
+ $('parameter').addEventListener('change',()=>{state.parameter=$('parameter').value;updateUI();});
+ $('layer').addEventListener('change',()=>{state.layer=Number($('layer').value);updateUI();});
+ $('leaf').addEventListener('change',()=>{state.digits[state.layer]=Math.round(Number($('leaf').value)||0);updateUI();});
+ $('fors-tree').addEventListener('change',()=>{state.forsTree=Number($('fors-tree').value);updateUI();});
+ $('wots-chain').addEventListener('change',()=>{state.wotsChain=Math.round(Number($('wots-chain').value)||0);updateUI();});
+ $('format').addEventListener('change',()=>{state.format=$('format').value;requestDraw();});
+ $('focus').addEventListener('change',()=>fitRegion($('focus').value));$('fit').addEventListener('click',()=>fitRegion('all'));
+ $('plus').addEventListener('click',()=>zoomAt(cssW/2,cssH/2,1.35));$('minus').addEventListener('click',()=>zoomAt(cssW/2,cssH/2,1/1.35));
+ board.addEventListener('wheel',e=>{e.preventDefault();const q=point(e);zoomAt(q.x,q.y,Math.exp(-Math.max(-100,Math.min(100,e.deltaY))*.0025));},{passive:false});
+ let pointers=new Map(),drag=null,pinch=null,moved=false;
+ board.addEventListener('pointerdown',e=>{board.setPointerCapture(e.pointerId);const q=point(e);pointers.set(e.pointerId,q);moved=false;if(pointers.size===1)drag={x:q.x,y:q.y,cx:cam.x,cy:cam.y};if(pointers.size===2){const a=[...pointers.values()];pinch={dist:Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y),s:cam.s,wx:((a[0].x+a[1].x)/2-cam.x)/cam.s,wy:((a[0].y+a[1].y)/2-cam.y)/cam.s};}board.classList.add('dragging');});
+ board.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const q=point(e);pointers.set(e.pointerId,q);if(pointers.size===2&&pinch){const a=[...pointers.values()],dist=Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y);cam.s=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,pinch.s*dist/Math.max(1,pinch.dist)));cam.x=(a[0].x+a[1].x)/2-pinch.wx*cam.s;cam.y=(a[0].y+a[1].y)/2-pinch.wy*cam.s;moved=true;}else if(drag){const dx=q.x-drag.x,dy=q.y-drag.y;cam.x=drag.cx+dx;cam.y=drag.cy+dy;if(Math.hypot(dx,dy)>4)moved=true;}viewMode='custom';requestDraw();});
+ function pointerEnd(e){const q=point(e);pointers.delete(e.pointerId);if(!moved&&drag&&e.type==='pointerup'){const wx=(q.x-cam.x)/cam.s,wy=(q.y-cam.y)/cam.s,h=hitboxes.find(b=>wx>=b.x&&wx<=b.x+b.w&&wy>=b.y&&wy<=b.y+b.h);if(h){if(h.type==='forsTree')state.forsTree=h.tree;else if(h.type==='wotsChain')state.wotsChain=h.chain;else state.layer=h.layer;updateUI();}}pinch=null;drag=null;if(pointers.size===1){const a=[...pointers.values()][0];drag={x:a.x,y:a.y,cx:cam.x,cy:cam.y};}if(!pointers.size)board.classList.remove('dragging');}
+ board.addEventListener('pointerup',pointerEnd);board.addEventListener('pointercancel',pointerEnd);
+ board.addEventListener('dblclick',e=>{const q=point(e),wx=(q.x-cam.x)/cam.s,wy=(q.y-cam.y)/cam.s;const region=Object.entries(regions).find(([name,r])=>name!=='all'&&wx>=r.x&&wx<=r.x+r.w&&wy>=r.y&&wy<=r.y+r.h);if(region)fitRegion(region[0]);else zoomAt(q.x,q.y,1.7);});
+ board.addEventListener('keydown',e=>{if(e.key==='0'){e.preventDefault();fitRegion('all');}else if(['+','=','-','_'].includes(e.key)){e.preventDefault();zoomAt(cssW/2,cssH/2,['+','='].includes(e.key)?1.3:1/1.3);}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();cam.x+=e.key==='ArrowLeft'?70:e.key==='ArrowRight'?-70:0;cam.y+=e.key==='ArrowUp'?70:e.key==='ArrowDown'?-70:0;viewMode='custom';requestDraw();}});
+ $('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await stage.requestFullscreen();}catch{ $('status').textContent='브라우저의 전체 화면(F11)을 사용할 수 있습니다.'; }});
+ $('export').addEventListener('click',()=>{
+   const button=$('export');button.disabled=true;button.textContent='저장 중…';
+   setTimeout(()=>{const old={width:board.width,height:board.height,cam:{...cam}},tmp=document.createElement('canvas');tmp.width=world.w;tmp.height=world.h;const dest=tmp.getContext('2d');
+     try{board.width=world.w;board.height=world.h;cam={x:0,y:0,s:1};ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=C.paper;ctx.fillRect(0,0,world.w,world.h);exporting=true;drawScene();dest.drawImage(board,0,0);}
+     finally{exporting=false;board.width=old.width;board.height=old.height;cam=old.cam;requestDraw();}
+     tmp.toBlob(blob=>{if(blob){const a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download=state.parameter+'-canvas.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}button.disabled=false;button.textContent='PNG 저장';},'image/png');
+   },30);
+ });
+ document.addEventListener('fullscreenchange',resize);new ResizeObserver(resize).observe(stage);
+ window.addEventListener('beforeprint',()=>fitRegion('all'));
+ updateUI();resize();
+ // Read-only scene information supports accessibility and regression checks.
+ Object.defineProperty(window,'slhCanvas',{get:()=>({parameter:state.parameter,n:p.n,h:p.h,d:p.d,hp:p.hp,k:p.k,a:p.a,chains:2*p.n+3,leaf:state.digits[state.layer],layer:state.layer,treeAddress:addr(state.layer).toString(),world:{...world},camera:{...cam},regions:JSON.parse(JSON.stringify(regions)),geometry:geo?JSON.parse(JSON.stringify(geo)):null})});
+})();
+</script>
+</body>
+</html>

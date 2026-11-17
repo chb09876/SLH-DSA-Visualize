@@ -1,0 +1,17 @@
+{
+  "name": "slh-dsa-visualizer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Canvas SLH-DSA KeyGen, Sign and Verify visualizer",
+  "scripts": {
+    "build": "node src/build-worker.cjs && node src/build-app.cjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.4.0",
+    "@noble/post-quantum": "0.7.1",
+    "esbuild": "0.25.12"
+  }
+}
